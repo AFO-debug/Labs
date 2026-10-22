@@ -29,13 +29,22 @@ checkProg :: Env -> Program -> Err ()
 checkProg e (PDefs ds) = mapM_ (checkDef e) ds
 
 checkDef :: Env -> Def -> Err ()
-checkDef = undefined
+checkDef e (DFun x i e s) = mapM_ (checkStms x e) s
 
 inferExp :: Env -> Exp -> Err Type
-inferExp = undefined
+inferExp e x = case x of 
 
 checkExp :: Env -> Exp -> Type -> Err ()
 checkExp = undefined
 
-checkStms :: Type -> Env -> [Stm] -> Err Env
-checkStms = undefined
+checkStm :: Type -> Env -> Stm -> Err Env
+checkStm x e [] = Ok e
+checkStm x e t = case t of 
+    SExp t' -> datas
+    SDecls x' i -> data
+    SInit x' i exp -> data
+    SReturn exp -> data
+    SReturnVoid -> data
+    SWhile exp t' -> data
+    SBlock ts' -> data
+    SIfElse exp t' t'' -> data
