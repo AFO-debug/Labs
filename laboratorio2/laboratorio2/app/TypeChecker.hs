@@ -12,16 +12,21 @@ import Prelude hiding (fail)
 #endif
 
 typecheck :: Program -> Err ()
-typecheck p = checkProg (llenarEnv emptyEnv p) p 
+typecheck p = do
+    e <- llenarEnv emptyEnv p
+    checkProg e p
 
-llenarEnv :: Env -> Program -> Env
-llenarEnv e p = e
+llenarEnv :: Env -> Program -> Err Env
+llenarEnv e (PDefs []) = Ok e
+llenarEnv e (PDefs (DFun t i as _): ds) = do
+    e' <- updateFun e i (ponerTypes as, t)
+    llenarEnv e' (PDefs ds)
+
+ponerTypes :: [Arg] -> [Type]
+ponerTypes as = [t | ADecl t _ <- as]
 
 checkProg :: Env -> Program -> Err ()
-checkProg _ (PDefs []) = Ok ()
-checkProg e (PDefs (d:ds))
-    |e == [] = Bad("hola")
-    |otherwise = checkDef e d
+checkProg e p = undefined
 
 checkDef :: Env -> Def -> Err ()
 checkDef = undefined
