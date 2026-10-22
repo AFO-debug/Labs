@@ -26,7 +26,7 @@ ponerTypes :: [Arg] -> [Type]
 ponerTypes as = [t | ADecl t _ <- as]
 
 checkProg :: Env -> Program -> Err ()
-checkProg e p = undefined
+checkProg e (PDefs ds) = mapM_ (checkDef e) ds
 
 checkDef :: Env -> Def -> Err ()
 checkDef = undefined
