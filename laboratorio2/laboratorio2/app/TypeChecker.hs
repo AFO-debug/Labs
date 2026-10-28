@@ -155,7 +155,7 @@ checkExp = undefined
 checkStm :: Type -> Env -> Stm -> Err Env
 checkStm x e [] = Ok e
 checkStm x e t = case t of 
-    SExp t' -> datas
+    SExp t' -> checkExp e t' (inferExp e t')
     SDecls x' i -> data
     SInit x' i exp -> data
     SReturn exp -> data
