@@ -46,5 +46,9 @@ updateFun (s, cs) x t
 newBlock :: Env -> Env
 newBlock (s, cs) = (s, (Map.empty:cs)) 
 
+endBlock :: Env -> Env
+endBlock (s, []) = (s, [])
+endBlock (s, c:cs) = (s, cs)
+
 emptyEnv :: Env
 emptyEnv = (Map.empty, [])

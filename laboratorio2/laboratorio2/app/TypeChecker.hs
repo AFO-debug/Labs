@@ -171,5 +171,5 @@ checkStm x e t = case t of
         then Ok e
         else Bad "Los tipos no coinciden"
     SWhile exp t' -> undefined
-    SBlock ts' -> pasoListaStm x (newBlock(e))
+    SBlock ts' -> endBlock (foldM (checkStm x) (newBlock e) ts)
     SIfElse exp t' t'' -> undefined
