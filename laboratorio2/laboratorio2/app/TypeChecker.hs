@@ -145,7 +145,11 @@ inferExp e x = case x of
             else Bad "tipos incompatibles en asignacion"
 
 checkExp :: Env -> Exp -> Type -> Err ()
-checkExp e c t = undefined
+checkExp e x t = do
+    t' <- inferExp e x 
+    if t' == t 
+        then ok ()
+        else bad "Los tipos no coinciden"
 
 checkStm :: Type -> Env -> Stm -> Err Env
 checkStm x e [] = Ok e
