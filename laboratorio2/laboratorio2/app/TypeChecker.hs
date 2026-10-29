@@ -158,14 +158,18 @@ checkStm :: Type -> Env -> Stm -> Err Env
 checkStm x e [] = Ok e
 checkStm x e t = case t of 
     SExp exp -> do
-        _ <- inferExp e exp
+        inferExp e exp
         return e
     SDecls x' i -> foldM (updateVar e x') i
     SInit x' i exp -> do
         c <- checkExp e exp x'
         Ok (updateVar e i x')  
-    SReturn exp -> undefined
-    SReturnVoid -> undefined
+    SReturn exp -> do 
+        checkExp e exp x
+        return e
+    SReturnVoid -> if x == Type_void 
+        then Ok e
+        else Bad "Los tipos no coinciden"
     SWhile exp t' -> undefined
-    SBlock ts' -> undefined
+    SBlock ts' -> pasoListaStm x (newBlock(e))
     SIfElse exp t' t'' -> undefined
