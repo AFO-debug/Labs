@@ -143,23 +143,20 @@ inferExp e x = case x of
         if t1 == t2
             then Ok t1
             else Bad "tipos incompatibles en asignacion"
-    ETyped x' t -> do
-        actualType <- inferExp e x'
-        if actualType == t
-            then Ok t
-            else Bad "el tipo declarado no coincide con la expresion"
 
 checkExp :: Env -> Exp -> Type -> Err ()
-checkExp = undefined
+checkExp e c t = undefined
 
 checkStm :: Type -> Env -> Stm -> Err Env
 checkStm x e [] = Ok e
 checkStm x e t = case t of 
-    SExp t' -> checkExp e t' (inferExp e t')
-    SDecls x' i -> data
-    SInit x' i exp -> data
-    SReturn exp -> data
-    SReturnVoid -> data
-    SWhile exp t' -> data
-    SBlock ts' -> data
-    SIfElse exp t' t'' -> data
+    SExp exp -> do
+        _ <- inferExp e exp
+        return e
+    SDecls x' i -> undefined
+    SInit x' i exp -> undefined
+    SReturn exp -> undefined
+    SReturnVoid -> undefined
+    SWhile exp t' -> undefined
+    SBlock ts' -> undefined
+    SIfElse exp t' t'' -> undefined
