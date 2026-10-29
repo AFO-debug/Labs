@@ -159,7 +159,9 @@ checkStm x e t = case t of
         return e
     SDecls x' i -> undefined
     SInit x' i exp -> undefined
-    SReturn exp -> undefined
+    SReturn exp -> do 
+        checkExp e exp x 
+        return e
     SReturnVoid -> undefined
     SWhile exp t' -> undefined
     SBlock ts' -> undefined
