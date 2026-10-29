@@ -160,10 +160,10 @@ checkStm x e t = case t of
     SExp exp -> do
         _ <- inferExp e exp
         return e
-    SDecls x' i -> foldM (updateVar x') i
+    SDecls x' i -> foldM (updateVar e x') i
     SInit x' i exp -> do
         c <- checkExp e exp x'
-        updateVar 
+        Ok (updateVar e i x')  
     SReturn exp -> undefined
     SReturnVoid -> undefined
     SWhile exp t' -> undefined
