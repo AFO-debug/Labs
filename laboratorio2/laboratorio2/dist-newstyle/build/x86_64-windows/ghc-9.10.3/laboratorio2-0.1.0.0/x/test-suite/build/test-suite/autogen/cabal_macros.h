@@ -61,9 +61,9 @@
   (major1) == 1 && (major2) == 6 && (minor) <= 26)
 #endif /* MIN_VERSION_process */
 
-/* tool alex-3.5.4.2 */
+/* tool alex-3.5.4.0 */
 #ifndef TOOL_VERSION_alex
-#define TOOL_VERSION_alex "3.5.4.2"
+#define TOOL_VERSION_alex "3.5.4.0"
 #endif /* TOOL_VERSION_alex */
 #ifndef MIN_TOOL_VERSION_alex
 #define MIN_TOOL_VERSION_alex(major1,major2,minor) (\
@@ -171,6 +171,16 @@
   (major1) == 9 && (major2) <  10 || \
   (major1) == 9 && (major2) == 10 && (minor) <= 3)
 #endif /* MIN_TOOL_VERSION_runghc */
+/* tool strip-2.28 */
+#ifndef TOOL_VERSION_strip
+#define TOOL_VERSION_strip "2.28"
+#endif /* TOOL_VERSION_strip */
+#ifndef MIN_TOOL_VERSION_strip
+#define MIN_TOOL_VERSION_strip(major1,major2,minor) (\
+  (major1) <  2 || \
+  (major1) == 2 && (major2) <  28 || \
+  (major1) == 2 && (major2) == 28 && (minor) <= 0)
+#endif /* MIN_TOOL_VERSION_strip */
 
 #ifndef CURRENT_COMPONENT_ID
 #define CURRENT_COMPONENT_ID "laboratorio2-0.1.0.0-inplace-test-suite"

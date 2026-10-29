@@ -6,8 +6,8 @@ import AbsCPP
 import PrintCPP
 import ErrM
 import Env
-import Control.Monad (foldM)
-import System.Win32 (xBUTTON1, try')
+import Control.Monad (foldM, foldM_)
+import Data.IntMap (update)
 
 #if __GLASGOW_HASKELL__ >= 708 && __GLASGOW_HASKELL__ < 808
 import Prelude hiding (fail)
@@ -20,7 +20,7 @@ typecheck p = do
 
 llenarEnv :: Env -> Program -> Err Env
 llenarEnv e (PDefs []) = Ok e
-llenarEnv e (PDefs (DFun t i as _): ds) = do
+llenarEnv e (PDefs (DFun t i as body : ds)) = do
     e' <- updateFun e i (ponerTypes as, t)
     llenarEnv e' (PDefs ds)
 
@@ -31,7 +31,9 @@ checkProg :: Env -> Program -> Err ()
 checkProg e (PDefs ds) = mapM_ (checkDef e) ds
 
 checkDef :: Env -> Def -> Err ()
-checkDef e (DFun x i e s) = mapM_ (checkStms x e) s
+checkDef env (DFun x i args stms) = do
+    env2 <- foldM (\env' (ADecl t ident) -> updateVar env' ident t) env args
+    foldM_ (checkStm x) env2 stms
 
 inferExp :: Env -> Exp -> Err Type
 inferExp e x = case x of
@@ -40,7 +42,7 @@ inferExp e x = case x of
     EInt n -> Ok Type_int
     EDouble n -> Ok Type_double   
     EString s -> Ok Type_string
-    EId i -> Ok (lookupVar e i)
+    EId i -> lookupVar e i
     EApp f args -> do
         (paramTypes, returnType) <- lookupFun e f
         argTypes <- mapM (inferExp e) args
@@ -49,24 +51,24 @@ inferExp e x = case x of
             else Bad "tipos de argumentos incorrectos"
     EPIncr x' -> do
         t <- inferExp e x'
-        if t == Type_int
-            then Ok Type_int
-            else Bad "EPIncr requiere un entero"
+        if t == Type_int || t == Type_double
+            then Ok t
+            else Bad "EPIncr requiere un entero o double"
     EPDecr x' -> do
         t <- inferExp e x'
-        if t == Type_int
-            then Ok Type_int
-            else Bad "EPDecr requiere un entero"
+        if t == Type_int || t == Type_double
+            then Ok t
+            else Bad "EPDecr requiere un entero o double"
     EIncr x' -> do
         t <- inferExp e x'
-        if t == Type_int
-            then Ok Type_int
-            else Bad "EIncr requiere un entero"
+        if t == Type_int || t == Type_double
+            then Ok t
+            else Bad "EIncr requiere un entero o double"
     EDecr x' -> do
         t <- inferExp e x'
-        if t == Type_int
-            then Ok Type_int
-            else Bad "EDecr requiere un entero"
+        if t == Type_int || t == Type_double
+            then Ok t
+            else Bad "EDecr requiere un entero o double"
     ETimes x1 x2 -> do
         t1 <- inferExp e x1
         t2 <- inferExp e x2
@@ -147,36 +149,46 @@ inferExp e x = case x of
             else Bad "tipos incompatibles en asignacion"
 
 checkExp :: Env -> Exp -> Type -> Err ()
-checkExp e c t = do
-    t' <- inferExp e x
+checkExp e exp t = do
+    t' <- inferExp e exp
     if t' == t
-        then Ok()
-        else bad "Los tipos no coinciden"
+        then Ok ()
+        else Bad "Los tipos no coinciden"
 
 
 checkStm :: Type -> Env -> Stm -> Err Env
-checkStm x e [] = Ok e
-checkStm x e t = case t of 
+checkStm x e stm = case stm of
     SExp exp -> do
-        inferExp e exp
-        return e
-    SDecls x' i -> foldM (updateVar e x') i
-    SInit x' i exp -> do
-        c <- checkExp e exp x'
-        Ok (updateVar e i x')  
-    SReturn exp -> do 
+        _ <- inferExp e exp
+        Ok e
+
+    SDecls t ids ->
+        foldM (\env ident -> updateVar env ident t) e ids
+
+    SInit t ident exp -> do
+        checkExp e exp t
+        updateVar e ident t
+
+    SReturn exp -> do
         checkExp e exp x
-        return e
-    SReturnVoid -> if x == Type_void 
-        then Ok e
-        else Bad "Los tipos no coinciden"
-    SWhile exp t' -> do
+        Ok e
+
+    SReturnVoid ->
+        if x == Type_void
+            then Ok e
+            else Bad "Los tipos no coinciden"
+
+    SWhile exp body -> do
         checkExp e exp Type_bool
-        _ <- checkStm x (newBlock e) t'
-        return e
-    SBlock ts' -> endBlock (foldM (checkStm x) (newBlock e) ts)
-    SIfElse exp t' t'' -> do
+        _ <- checkStm x (newBlock e) body
+        Ok e
+
+    SBlock stms -> do
+        env' <- foldM (checkStm x) (newBlock e) stms
+        Ok (endBlock env')
+
+    SIfElse exp stm1 stm2 -> do
         checkExp e exp Type_bool
-        _ <- checkStm x (newBlock e) t'
-        _ <- checkStm x (newBlock e) t''
-        return e
+        _ <- checkStm x (newBlock e) stm1
+        _ <- checkStm x (newBlock e) stm2
+        Ok e

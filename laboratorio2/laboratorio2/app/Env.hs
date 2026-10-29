@@ -51,4 +51,4 @@ endBlock (s, []) = (s, [])
 endBlock (s, c:cs) = (s, cs)
 
 emptyEnv :: Env
-emptyEnv = (Map.empty, [])
+emptyEnv = (Map.empty, [Map.empty])
