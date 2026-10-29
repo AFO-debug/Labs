@@ -175,4 +175,8 @@ checkStm x e t = case t of
         _ <- checkStm x (newBlock e) t'
         return e
     SBlock ts' -> endBlock (foldM (checkStm x) (newBlock e) ts)
-    SIfElse exp t' t'' -> undefined
+    SIfElse exp t' t'' -> do
+        checkExp e exp Type_bool
+        _ <- checkStm x (newBlock e) t'
+        _ <- checkStm x (newBlock e) t''
+        return e
