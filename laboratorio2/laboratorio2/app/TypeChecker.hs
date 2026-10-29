@@ -65,7 +65,7 @@ inferExp e x = case x of
             then Ok t
             else Bad "EIncr requiere un entero o double"
     EDecr x' -> do
-        t <- inferExp e x'
+        t <- inferExp e x'git 
         if t == Type_int || t == Type_double
             then Ok t
             else Bad "EDecr requiere un entero o double"
