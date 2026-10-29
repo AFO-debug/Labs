@@ -7,7 +7,7 @@ import PrintCPP
 import ErrM
 import Env
 import Control.Monad (foldM)
-import System.Win32 (xBUTTON1)
+import System.Win32 (xBUTTON1, try')
 
 #if __GLASGOW_HASKELL__ >= 708 && __GLASGOW_HASKELL__ < 808
 import Prelude hiding (fail)
@@ -170,6 +170,9 @@ checkStm x e t = case t of
     SReturnVoid -> if x == Type_void 
         then Ok e
         else Bad "Los tipos no coinciden"
-    SWhile exp t' -> undefined
+    SWhile exp t' -> do
+        checkExp e exp Type_bool
+        _ <- checkStm x (newBlock e) t'
+        return e
     SBlock ts' -> endBlock (foldM (checkStm x) (newBlock e) ts)
     SIfElse exp t' t'' -> undefined
