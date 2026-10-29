@@ -6,6 +6,8 @@ import AbsCPP
 import PrintCPP
 import ErrM
 import Env
+import Control.Monad (foldM)
+import System.Win32 (xBUTTON1)
 
 #if __GLASGOW_HASKELL__ >= 708 && __GLASGOW_HASKELL__ < 808
 import Prelude hiding (fail)
@@ -145,11 +147,12 @@ inferExp e x = case x of
             else Bad "tipos incompatibles en asignacion"
 
 checkExp :: Env -> Exp -> Type -> Err ()
-checkExp e x t = do
-    t' <- inferExp e x 
-    if t' == t 
-        then ok ()
+checkExp e c t = do
+    t' <- inferExp e x
+    if t' == t
+        then Ok()
         else bad "Los tipos no coinciden"
+
 
 checkStm :: Type -> Env -> Stm -> Err Env
 checkStm x e [] = Ok e
@@ -157,8 +160,10 @@ checkStm x e t = case t of
     SExp exp -> do
         _ <- inferExp e exp
         return e
-    SDecls x' i -> undefined
-    SInit x' i exp -> undefined
+    SDecls x' i -> foldM (updateVar x') i
+    SInit x' i exp -> do
+        c <- checkExp e exp x'
+        updateVar 
     SReturn exp -> undefined
     SReturnVoid -> undefined
     SWhile exp t' -> undefined
