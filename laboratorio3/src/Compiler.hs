@@ -4,6 +4,8 @@ module Compiler where
 -- java virtual machine instructions reference
 -- http://cs.au.dk/~mis/dOvs/jvmspec/ref-Java.html
 
+-- cabal run laboratorio3 ./good
+
 import AbsCPP
 import TypeChecker
 
@@ -44,8 +46,7 @@ typeSize Type_double = 2
 typeSize _           = 1
 
 extendVar :: Type -> Id -> State Env ()
-extendVar t i = do 
-  modify (\s -> s {vars = Map.insert i (typeSize t) : vars s, 
+extendVar t i = modify (\s -> s {vars = Map.insert i (typeSize t) (head (vars s)) : vars s , 
                   maxvars = typeSize t + head (maxvars s) : maxvars s})
   
 
@@ -66,7 +67,7 @@ funJVM :: String -> String -> [Type] -> Type -> FunType
 funJVM i clas argty rty = "invokestatic " ++ clas ++"/" ++ funJVMType i argty rty
 
 extendFunEnv :: String -> FunType -> State Env ()
-extendFunEnv i ft = undefined
+extendFunEnv i ft = modify (\s -> s {funs = Map.insert (Id i) ft (funs s)})
 
 extendDef :: String -> Def -> State Env ()
 extendDef cls (DFun t (Id i) args stmts) = undefined
@@ -76,10 +77,10 @@ extendBuiltinDefs :: State Env ()
 extendBuiltinDefs = mapM_ ( \ ((Id i),(argTys,rty)) -> extendFunEnv i $ funJVM i "Runtime" argTys rty) buildInFunctions
 
 newBlock :: State Env ()
-newBlock = undefined
+newBlock = modify (\s -> s {vars = Map.empty : vars s})
 
 exitBlock :: State Env ()
-exitBlock = undefined
+exitBlock = modify (\s -> s {vars = tail (vars s)})
 
 newLabel :: State Env String
 newLabel  = undefined
@@ -90,12 +91,12 @@ lookupFun i = undefined
 lookupVar :: Id -> State Env Int
 lookupVar i = undefined
 
-exec state
+-- exec state
 -- Entry point from ccpp.
 -- Arguments: cls is the class name and p is the typed embedded abstract syntax tree (returned by the type checker).
 -- Hints: call compileP and run the State monad !
 compile :: String -> Program -> [Instruction]
-compile cls p = undefined
+compile cls p = code (execState (compileP cls p) emptyEnv)
 
 compileP :: String -> Program -> State Env () 
 compileP cls (PDefs defs) = do
@@ -129,10 +130,44 @@ compileDef (DFun t (Id i) args stmts) = do
   emit ""
 
 compileStm :: Stm -> State Env ()
-compileStm stm = undefined
+compileStm stm = case stm of
+  SExp exp -> undefined
+  SDecls t ids -> undefined
+  SInit t i e -> undefined
+  SReturn e -> undefined
+  SReturnVoid -> undefined
+  SWhile e s -> undefined
+  SBlock sts -> undefined
+  SIfElse e st1 st2 -> undefined
+
 
 compileExp :: Exp -> State Env ()
-compileExp exp = undefined
+compileExp exp = case exp of
+  ETrue -> undefined
+  EFalse -> undefined
+  EInt i -> undefined
+  EDouble d -> undefined
+  EString s -> undefined
+  EId i -> undefined
+  EApp i es -> undefined
+  EPIncr i -> undefined
+  EPDecr i -> undefined
+  EIncr i -> undefined
+  EDecr i -> undefined
+  ETimes e1 e2 -> undefined
+  EDiv e1 e2 -> undefined
+  EPlus e1 e2 -> undefined
+  EMinus e1 e2 -> undefined
+  ELt e1 e2 -> undefined
+  EGt e1 e2 -> undefined
+  ELtEq e1 e2 -> undefined
+  EGtEq e1 e2 -> undefined
+  EEq e1 e2 -> undefined
+  ENEq e1 e2 -> undefined
+  EAnd e1 e2 -> undefined
+  EOr e1 e2 -> undefined
+  EAss i e -> undefined
+  ETyped e t -> undefined
 
 -- Hints: usefull auxiliary functions for comparations compilation
 data Cmp = Equal | NEqual | Lt | Gt | Ge | Le
