@@ -37,17 +37,20 @@ emptyEnv = Env { funs=Map.empty,
                  code=[]}
 
 emit :: Instruction -> State Env ()
-emit i = undefined
+emit i = modify (\s -> s {code = i : code s})
 
 typeSize :: Type -> Int
 typeSize Type_double = 2
 typeSize _           = 1
 
 extendVar :: Type -> Id -> State Env ()
-extendVar t i = undefined
+extendVar t i = do 
+  modify (\s -> s {vars = Map.insert i (typeSize t) : vars s, 
+                  maxvars = typeSize t + head (maxvars s) : maxvars s})
+  
 
 extendVars :: Type -> [Id] -> State Env ()
-extendVars t ids = undefined
+extendVars t = mapM_ (extendVar t)
 
 typeJVM :: Type -> String
 typeJVM Type_int    = "I"
@@ -87,6 +90,7 @@ lookupFun i = undefined
 lookupVar :: Id -> State Env Int
 lookupVar i = undefined
 
+exec state
 -- Entry point from ccpp.
 -- Arguments: cls is the class name and p is the typed embedded abstract syntax tree (returned by the type checker).
 -- Hints: call compileP and run the State monad !
