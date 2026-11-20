@@ -149,7 +149,7 @@ compileDef (DFun t (Id i) args stmts) = do
 
 compileStm :: Stm -> State Env ()
 compileStm stm = case stm of
-  SExp exp -> compileExp
+  SExp exp -> compileExp exp
   SDecls t ids -> extendVars t ids
   SInit t i e -> do
     extendVar t i
@@ -169,12 +169,29 @@ compileStm stm = case stm of
       Type_double -> emit "dreturn"
       Type_string -> emit "areturn"
   SReturnVoid -> emit "return" 
-  SWhile e s -> undefined
+  SWhile e s -> do
+    testLabel <- newLabel
+    endLabel <- newLabel
+    emit (testLabel ++ ":")
+    compileExp e
+    emit ("ifeq " ++ endLabel)
+    compileStm s
+    emit("goto " ++ testLabel)
+    emit(endLabel ++ ":")
   SBlock sts -> do
     newBlock
     mapM_ compileStm sts
     exitBlock
-  SIfElse e st1 st2 -> undefined
+  SIfElse e st1 st2 -> do
+    falseLabel <- newLabel
+    trueLabel <- newLabel
+    compileExp e
+    emit ("ifeq " ++ falseLabel)
+    compileStm st1
+    emit ("goto " ++ trueLabel)
+    emit (falseLabel ++ ":")
+    compileStm st2
+    emit (trueLabel ++ ":")
 
 lookType :: Exp -> Type
 lookType exp = case exp of
