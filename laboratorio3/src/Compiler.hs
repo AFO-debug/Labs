@@ -149,15 +149,57 @@ compileDef (DFun t (Id i) args stmts) = do
 
 compileStm :: Stm -> State Env ()
 compileStm stm = case stm of
-  SExp exp -> undefined
-  SDecls t ids -> undefined
-  SInit t i e -> undefined
-  SReturn e -> undefined
-  SReturnVoid -> undefined
+  SExp exp -> compileExp
+  SDecls t ids -> extendVars t ids
+  SInit t i e -> do
+    extendVar t i
+    compileExp e
+    posicion <- lookupVar i
+    case t of
+      Type_bool -> emit ("istore " ++ show posicion)
+      Type_int -> emit ("istore " ++ show posicion)
+      Type_double -> emit ("dstore " ++ show posicion)
+      Type_string -> emit ("astore " ++ show posicion)
+  SReturn e -> do
+    compileExp e
+    t <- lookType(e)
+    case t of 
+      Type_bool -> emit "ireturn"
+      Type_int -> emit "ireturn"
+      Type_double -> emit "dreturn"
+      Type_string -> emit "areturn"
+  SReturnVoid -> emit "return" 
   SWhile e s -> undefined
   SBlock sts -> undefined
   SIfElse e st1 st2 -> undefined
 
+lookType :: Exp -> Type
+lookType exp = case exp of
+  ETrue -> Type_bool
+  EFalse -> Type_bool
+  EInt i -> Type_int
+  EDouble d -> Type_double
+  EString s -> Type_string
+  EId i -> error "EId sin anotacion de tipo"
+  EApp i es -> error "EApp sin anotacion de tipo"
+  EPIncr i -> error "EPIncr sin anotacion de tipo"
+  EPDecr i -> error "EPDecr sin anotacion de tipo"
+  EIncr i -> error "EIncr sin anotacion de tipo"
+  EDecr i -> error "EDecr sin anotacion de tipo"
+  ETimes e1 e2 -> lookType e1
+  EDiv e1 e2 -> lookType e1
+  EPlus e1 e2 -> lookType e1
+  EMinus e1 e2 -> lookType e1
+  ELt e1 e2 -> Type_bool
+  EGt e1 e2 -> Type_bool
+  ELtEq e1 e2 -> Type_bool
+  EGtEq e1 e2 -> Type_bool
+  EEq e1 e2 -> Type_bool
+  ENEq e1 e2 -> Type_bool
+  EAnd e1 e2 -> Type_bool
+  EOr e1 e2 -> Type_bool
+  EAss i e -> lookType e
+  ETyped e t -> t
 
 compileExp :: Exp -> State Env ()
 compileExp exp = case exp of
