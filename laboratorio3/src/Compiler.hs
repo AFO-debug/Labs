@@ -83,13 +83,31 @@ exitBlock :: State Env ()
 exitBlock = modify (\s -> s {vars = tail (vars s)})
 
 newLabel :: State Env String
-newLabel  = undefined
+newLabel  = do 
+  currentState <- get
+  put currentState { labels = (labels currentState) + 1}
+  return ("L" ++ show (labels currentState))
 
 lookupFun :: Id -> State Env FunType
-lookupFun i = undefined
+lookupFun i = do
+  currentState <- get
+  case Map.lookup i (funs currentState) of
+    Just ft -> return ft
+    Nothing -> error ("Function not found: " ++ show i)
 
 lookupVar :: Id -> State Env Int
-lookupVar i = undefined
+lookupVar i = do
+  currentState <- get
+  case findVar i (vars currentState) of
+    Just address -> return address
+    Nothing -> error ("Variable not found: " ++ show i)
+
+findVar :: Id -> [Map.Map Id Int] -> Maybe Int
+findVar _ [] = Nothing
+findVar i (block:blocks) =
+  case Map.lookup i block of
+    Just address -> Just address
+    Nothing -> findVar i blocks
 
 -- exec state
 -- Entry point from ccpp.
