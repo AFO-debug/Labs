@@ -170,7 +170,10 @@ compileStm stm = case stm of
       Type_string -> emit "areturn"
   SReturnVoid -> emit "return" 
   SWhile e s -> undefined
-  SBlock sts -> undefined
+  SBlock sts -> do
+    newBlock
+    mapM_ compileStm sts
+    exitBlock
   SIfElse e st1 st2 -> undefined
 
 lookType :: Exp -> Type
