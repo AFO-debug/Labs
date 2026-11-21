@@ -223,18 +223,42 @@ lookType exp = case exp of
 
 compileExp :: Exp -> State Env ()
 compileExp exp = case exp of
-  ETrue -> undefined
-  EFalse -> undefined
-  EInt i -> undefined
-  EDouble d -> undefined
-  EString s -> undefined
-  EId i -> undefined
-  EApp i es -> undefined
-  EPIncr i -> undefined
-  EPDecr i -> undefined
-  EIncr i -> undefined
-  EDecr i -> undefined
-  ETimes e1 e2 -> undefined
+  ETrue -> emit "iconst_1"
+  EFalse -> emit "iconst_0"
+  EInt i -> emit ("ldc " ++ show i)
+  EDouble d -> emit ("ldc2_w " ++ show d) 
+  EString s -> emit ("ldc " ++ show s)
+  EId i -> do
+    posicion <- lookupVar i
+    emit ("iload " ++ show posicion)
+    -- ????????
+  EApp i es -> do
+    f <- lookupFun i
+    mapM_ compileExp es
+    emit ("invokestatic Main/" ++ f)
+  EPIncr i -> do
+    posicion <- lookupVar i
+    emit ("iload " ++ show posicion)
+    emit ("iinc " ++ show posicion ++ " " ++ show 1)
+  EPDecr i -> do
+    posicion <- lookupVar i
+    emit ("iload " ++ show posicion)
+    emit ("iinc " ++ show posicion ++ " " ++ show -1)
+  EIncr i -> do
+    posicion <- lookupVar i
+    emit ("iinc " ++ show posicion ++ " " ++ show 1)
+    emit ("iload " ++ show posicion)
+  EDecr i -> do
+    posicion <- lookupVar i
+    emit ("iinc " ++ show posicion ++ " " ++ show -1)
+    emit ("iload " ++ show posicion)
+
+    -- estas cuatro falta para saber si son int o double
+
+  ETimes e1 e2 -> do
+    compileExp e1
+    compileExp e2
+    emit 
   EDiv e1 e2 -> undefined
   EPlus e1 e2 -> undefined
   EMinus e1 e2 -> undefined
