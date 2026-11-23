@@ -221,57 +221,331 @@ lookType exp = case exp of
   EAss i e -> lookType e
   ETyped e t -> t
 
+
 compileExp :: Exp -> State Env ()
-compileExp exp = case exp of
-  ETrue -> emit "iconst_1"
-  EFalse -> emit "iconst_0"
-  EInt i -> emit ("ldc " ++ show i)
-  EDouble d -> emit ("ldc2_w " ++ show d) 
-  EString s -> emit ("ldc " ++ show s)
-  EId i -> do
-    posicion <- lookupVar i
-    emit ("iload " ++ show posicion)
-    -- ????????
-  EApp i es -> do
-    f <- lookupFun i
-    mapM_ compileExp es
-    emit ("invokestatic Main/" ++ f)
-  EPIncr i -> do
-    posicion <- lookupVar i
-    emit ("iload " ++ show posicion)
-    emit ("iinc " ++ show posicion ++ " " ++ show 1)
-  EPDecr i -> do
-    posicion <- lookupVar i
-    emit ("iload " ++ show posicion)
-    emit ("iinc " ++ show posicion ++ " " ++ show -1)
-  EIncr i -> do
-    posicion <- lookupVar i
-    emit ("iinc " ++ show posicion ++ " " ++ show 1)
-    emit ("iload " ++ show posicion)
-  EDecr i -> do
-    posicion <- lookupVar i
-    emit ("iinc " ++ show posicion ++ " " ++ show -1)
-    emit ("iload " ++ show posicion)
 
-    -- estas cuatro falta para saber si son int o double
+compileExp (ETyped ETrue _) = emit "iconst_1"
 
-  ETimes e1 e2 -> do
-    compileExp e1
-    compileExp e2
-    emit 
-  EDiv e1 e2 -> undefined
-  EPlus e1 e2 -> undefined
-  EMinus e1 e2 -> undefined
-  ELt e1 e2 -> undefined
-  EGt e1 e2 -> undefined
-  ELtEq e1 e2 -> undefined
-  EGtEq e1 e2 -> undefined
-  EEq e1 e2 -> undefined
-  ENEq e1 e2 -> undefined
-  EAnd e1 e2 -> undefined
-  EOr e1 e2 -> undefined
-  EAss i e -> undefined
-  ETyped e t -> undefined
+compileExp (ETyped EFalse _) = emit "iconst_0"
+
+compileExp (ETyped (EInt i) _) = emit ("ldc " ++ show i)
+
+compileExp (ETyped (EDouble d) _) = emit ("ldc2_w " ++ show d)
+
+compileExp (ETyped (EString s) _) = emit ("ldc " ++ show s)
+
+compileExp (ETyped (EId i) t) = do
+  posicion <- lookupVar i
+  case t of
+    Type_bool   -> emit ("iload " ++ show posicion)
+    Type_int    -> emit ("iload " ++ show posicion)
+    Type_double -> emit ("dload " ++ show posicion)
+    Type_string -> emit ("aload " ++ show posicion)
+    _ -> error "Invalid type for variable"
+
+compileExp (ETyped (EApp i es) _) = do
+  f <- lookupFun i
+  mapM_ compileExp es
+  emit ("invokestatic Main/" ++ f)
+
+compileExp (ETyped (EPIncr i) t) = do
+  posicion <- lookupVar i
+  case t of
+    Type_int -> do
+      emit ("iload " ++ show posicion)
+      emit ("iinc " ++ show posicion ++ " 1")
+
+    Type_double -> do
+      emit ("dload " ++ show posicion)
+      emit "dup2"
+      emit "dconst_1"
+      emit "dadd"
+      emit ("dstore " ++ show posicion)
+
+    _ -> error "Invalid type for post-increment"
+
+compileExp (ETyped (EPDecr i) t) = do
+  posicion <- lookupVar i
+  case t of
+    Type_int -> do
+      emit ("iload " ++ show posicion)
+      emit ("iinc " ++ show posicion ++ " -1")
+
+    Type_double -> do
+      emit ("dload " ++ show posicion)
+      emit "dup2"
+      emit "dconst_1"
+      emit "dsub"
+      emit ("dstore " ++ show posicion)
+
+    _ -> error "Invalid type for post-decrement"
+
+compileExp (ETyped (EIncr i) t) = do
+  posicion <- lookupVar i
+  case t of
+    Type_int -> do
+      emit ("iinc " ++ show posicion ++ " 1")
+      emit ("iload " ++ show posicion)
+
+    Type_double -> do
+      emit ("dload " ++ show posicion)
+      emit "dconst_1"
+      emit "dadd"
+      emit "dup2"
+      emit ("dstore " ++ show posicion)
+
+    _ -> error "Invalid type for pre-increment"
+
+compileExp (ETyped (EDecr i) t) = do
+  posicion <- lookupVar i
+  case t of
+    Type_int -> do
+      emit ("iinc " ++ show posicion ++ " -1")
+      emit ("iload " ++ show posicion)
+
+    Type_double -> do
+      emit ("dload " ++ show posicion)
+      emit "dconst_1"
+      emit "dsub"
+      emit "dup2"
+      emit ("dstore " ++ show posicion)
+
+    _ -> error "Invalid type for pre-decrement"
+
+compileExp (ETyped (ETimes e1 e2) t) = do
+  compileExp e1
+  compileExp e2
+  case t of
+    Type_int    -> emit "imul"
+    Type_double -> emit "dmul"
+    _ -> error "Invalid type for multiplication"
+
+compileExp (ETyped (EDiv e1 e2) t) = do
+  compileExp e1
+  compileExp e2
+  case t of
+    Type_int    -> emit "idiv"
+    Type_double -> emit "ddiv"
+    _ -> error "Invalid type for division"
+
+compileExp (ETyped (EPlus e1 e2) t) = do
+  compileExp e1
+  compileExp e2
+  case t of
+    Type_int    -> emit "iadd"
+    Type_double -> emit "dadd"
+    Type_string ->
+      emit "invokestatic runtime/plusString(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;"
+    _ -> error "Invalid type for addition"
+
+compileExp (ETyped (EMinus e1 e2) t) = do
+  compileExp e1
+  compileExp e2
+  case t of
+    Type_int    -> emit "isub"
+    Type_double -> emit "dsub"
+    _ -> error "Invalid type for subtraction"
+
+compileExp (ETyped (ELt e1 e2) _) = do
+  compileExp e1
+  compileExp e2
+
+  tipo <- case e1 of
+    ETyped _ t -> return t
+    _ -> error "Expression without type annotation"
+
+  verdadero <- newLabel
+  fin <- newLabel
+
+  case tipo of
+    Type_int -> do
+      emit ("if_icmplt " ++ verdadero)
+
+    Type_double -> do
+      emit "dcmpg"
+      emit ("iflt " ++ verdadero)
+
+    _ -> error "Invalid type for less-than comparison"
+
+  emit "iconst_0"
+  emit ("goto " ++ fin)
+  emit (verdadero ++ ":")
+  emit "iconst_1"
+  emit (fin ++ ":")
+
+compileExp (ETyped (EGt e1 e2) _) = do
+  compileExp e1
+  compileExp e2
+
+  tipo <- case e1 of
+    ETyped _ t -> return t
+    _ -> error "Expression without type annotation"
+
+  verdadero <- newLabel
+  fin <- newLabel
+
+  case tipo of
+    Type_int -> do
+      emit ("if_icmpgt " ++ verdadero)
+
+    Type_double -> do
+      emit "dcmpl"
+      emit ("ifgt " ++ verdadero)
+
+    _ -> error "Invalid type for greater-than comparison"
+
+  emit "iconst_0"
+  emit ("goto " ++ fin)
+  emit (verdadero ++ ":")
+  emit "iconst_1"
+  emit (fin ++ ":")
+
+compileExp (ETyped (ELtEq e1 e2) _) = do
+  compileExp e1
+  compileExp e2
+
+  tipo <- case e1 of
+    ETyped _ t -> return t
+    _ -> error "Expression without type annotation"
+
+  verdadero <- newLabel
+  fin <- newLabel
+
+  case tipo of
+    Type_int -> do
+      emit ("if_icmple " ++ verdadero)
+
+    Type_double -> do
+      emit "dcmpg"
+      emit ("ifle " ++ verdadero)
+
+    _ -> error "Invalid type for less-than-or-equal comparison"
+
+  emit "iconst_0"
+  emit ("goto " ++ fin)
+  emit (verdadero ++ ":")
+  emit "iconst_1"
+  emit (fin ++ ":")
+
+compileExp (ETyped (EGtEq e1 e2) _) = do
+  compileExp e1
+  compileExp e2
+
+  tipo <- case e1 of
+    ETyped _ t -> return t
+    _ -> error "Expression without type annotation"
+
+  verdadero <- newLabel
+  fin <- newLabel
+
+  case tipo of
+    Type_int -> do
+      emit ("if_icmpge " ++ verdadero)
+
+    Type_double -> do
+      emit "dcmpl"
+      emit ("ifge " ++ verdadero)
+
+    _ -> error "Invalid type for greater-than-or-equal comparison"
+
+  emit "iconst_0"
+  emit ("goto " ++ fin)
+  emit (verdadero ++ ":")
+  emit "iconst_1"
+  emit (fin ++ ":")
+
+compileExp (ETyped (EEq e1 e2) _) = do
+  compileExp e1
+  compileExp e2
+
+  tipo <- case e1 of
+    ETyped _ t -> return t
+    _ -> error "Expression without type annotation"
+
+  verdadero <- newLabel
+  fin <- newLabel
+
+  case tipo of
+    Type_int -> do
+      emit ("if_icmpeq " ++ verdadero)
+
+    Type_bool -> do
+      emit ("if_icmpeq " ++ verdadero)
+
+    Type_double -> do
+      emit "dcmpg"
+      emit ("ifeq " ++ verdadero)
+
+    _ -> error "Invalid type for equality comparison"
+
+  emit "iconst_0"
+  emit ("goto " ++ fin)
+  emit (verdadero ++ ":")
+  emit "iconst_1"
+  emit (fin ++ ":")
+
+compileExp (ETyped (ENEq e1 e2) _) = do
+  compileExp e1
+  compileExp e2
+
+  tipo <- case e1 of
+    ETyped _ t -> return t
+    _ -> error "Expression without type annotation"
+
+  verdadero <- newLabel
+  fin <- newLabel
+
+  case tipo of
+    Type_int -> do
+      emit ("if_icmpne " ++ verdadero)
+
+    Type_bool -> do
+      emit ("if_icmpne " ++ verdadero)
+
+    Type_double -> do
+      emit "dcmpg"
+      emit ("ifne " ++ verdadero)
+
+    _ -> error "Invalid type for inequality comparison"
+
+  emit "iconst_0"
+  emit ("goto " ++ fin)
+  emit (verdadero ++ ":")
+  emit "iconst_1"
+  emit (fin ++ ":")
+
+compileExp (ETyped (EAnd e1 e2) _) = do
+  compileExp e1
+  compileExp e2
+  emit "iand"
+
+compileExp (ETyped (EOr e1 e2) _) = do
+  compileExp e1
+  compileExp e2
+  emit "ior"
+
+compileExp (ETyped (EAss i e) t) = do
+  posicion <- lookupVar i
+  compileExp e
+
+  case t of
+    Type_int -> do
+      emit "dup"
+      emit ("istore " ++ show posicion)
+
+    Type_bool -> do
+      emit "dup"
+      emit ("istore " ++ show posicion)
+
+    Type_double -> do
+      emit "dup2"
+      emit ("dstore " ++ show posicion)
+
+    Type_string -> do
+      emit "dup"
+      emit ("astore " ++ show posicion)
+
+    _ -> error "Invalid type for assignment"
 
 -- Hints: usefull auxiliary functions for comparations compilation
 data Cmp = Equal | NEqual | Lt | Gt | Ge | Le
