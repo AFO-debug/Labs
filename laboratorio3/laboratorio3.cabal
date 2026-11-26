@@ -1,4 +1,4 @@
-cabal-version:      3.0
+cabal-version:     2.4
 -- The cabal-version field refers to the version of the .cabal specification,
 -- and can be different from the cabal-install (the tool) version and the
 -- Cabal (the library) version you are using. As such, the Cabal (the library)
@@ -60,14 +60,14 @@ library
     -- Modules exported by the library.
     exposed-modules:  Compiler,
                       ParCPP,
-                      TypeChecker,
+                      TypeChecker
 
 
     -- Modules included in this library but not exported.
     other-modules:  AbsCPP,
                     Env,
                     ErrM,
-                    LexCPP,
+                    LexCPP
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:

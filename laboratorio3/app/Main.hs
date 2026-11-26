@@ -42,24 +42,17 @@ runMake dir = do checkDirectoryExists dir
                  runCommandNoFail_ ("make -C " ++ quote dir) ""
 
 runTests :: FilePath -> IO ([(FilePath,Bool)],[(FilePath,Bool)])
-runTests dir = 
-    do let prog = "cabal run ccpp"
-       --checkFileExists prog
-       goodProgs <- listGoodProgs
-       badProgs  <- listBadProgs
-       good <- mapM (testBackendProg prog) goodProgs
-       --bad  <- mapM (\f -> (f, testBackendProg prog)) badProgs
-       return (good,[])
+runTests dir = do
+    let prog = "cabal run ccpp"
+    progs <- listCCFiles dir
+    results <- mapM (testBackendProg prog) progs
+    return (results, [])
 
 runOneTest :: FilePath -> FilePath -> IO ([(FilePath,Bool)],[(FilePath,Bool)])
-runOneTest dir ccFile = 
-    do let prog = joinPath [dir,"cabal run ccpp"]
-       --checkFileExists prog
-       --goodProgs <- listGoodProgs
-       badProgs  <- listBadProgs
-       good <- mapM (testBackendProg prog) [ccFile]
-       --bad  <- mapM (\f -> (f, testBackendProg prog)) badProgs
-       return (good,[])
+runOneTest dir ccFile = do
+    let prog = "cabal run ccpp"
+    result <- testBackendProg prog ccFile
+    return ([result], [])
 
 testBackendProg :: FilePath -> FilePath -> IO (FilePath, Bool)
 testBackendProg prog f =
