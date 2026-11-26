@@ -12,6 +12,7 @@ import TypeChecker
 import qualified Data.Map as Map
 import Control.Monad
 import Control.Monad.State
+import Control.Monad.Fail
 import Data.Functor.Identity
 
 instance MonadFail Identity where
