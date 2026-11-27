@@ -71,7 +71,9 @@ extendFunEnv :: String -> FunType -> State Env ()
 extendFunEnv i ft = modify (\s -> s {funs = Map.insert (Id i) ft (funs s)})
 
 extendDef :: String -> Def -> State Env ()
-extendDef cls (DFun t (Id i) args stmts) = undefined
+extendDef cls (DFun t (Id i) args _) =
+  extendFunEnv i $
+    funJVM i cls (map (\(ADecl argT _) -> argT) args) t
 
 -- Besides added in type checker
 extendBuiltinDefs :: State Env ()
@@ -115,7 +117,7 @@ findVar i (block:blocks) =
 -- Arguments: cls is the class name and p is the typed embedded abstract syntax tree (returned by the type checker).
 -- Hints: call compileP and run the State monad !
 compile :: String -> Program -> [Instruction]
-compile cls p = code (execState (compileP cls p) emptyEnv)
+compile cls p = reverse (code (execState (compileP cls p) emptyEnv))
 
 compileP :: String -> Program -> State Env () 
 compileP cls (PDefs defs) = do
@@ -150,7 +152,15 @@ compileDef (DFun t (Id i) args stmts) = do
 
 compileStm :: Stm -> State Env ()
 compileStm stm = case stm of
-  SExp exp -> compileExp exp
+  SExp exp -> do
+    compileExp exp
+    case exp of
+      ETyped _ Type_int    -> emit "pop"
+      ETyped _ Type_bool   -> emit "pop"
+      ETyped _ Type_double -> emit "pop2"
+      ETyped _ Type_string -> emit "pop"
+      ETyped _ Type_void   -> return ()
+      _ -> error "Expression without type annotation"
   SDecls t ids -> extendVars t ids
   SInit t i e -> do
     extendVar t i
@@ -221,7 +231,7 @@ compileExp (ETyped (EId i) t) = do
 compileExp (ETyped (EApp i es) _) = do
   f <- lookupFun i
   mapM_ compileExp es
-  emit ("invokestatic Main/" ++ f)
+  emit f
 
 compileExp (ETyped (EPIncr i) t) = do
   posicion <- lookupVar i
@@ -541,8 +551,3 @@ showDbl Lt     = "iflt "
 showDbl Gt     = "ifgt "
 showDbl Ge     = "ifge "
 showDbl Le     = "ifle "
-
-  
-
-
-
